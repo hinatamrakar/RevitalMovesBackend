@@ -1,0 +1,36 @@
+# Dependencies
+/vendor/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Uploaded files
+/uploads/resumes/*
+/uploads/cover_letters/*
+
+# Keep upload directories in git
+!/uploads/resumes/.gitkeep
+!/uploads/cover_letters/.gitkeep
+
+# Logs
+*.log
+error_log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Composer
+composer.phar
+
+# Cache
+.cache/
