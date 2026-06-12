@@ -279,6 +279,10 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
       <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Applications
     </a>
+    <a onclick="navigate('messages')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Messages
+    </a>
     <a onclick="navigate('settings')">
       <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 17v.01"/><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       Settings
@@ -422,6 +426,46 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
       </div>
     </div>
 
+    <!-- Messages -->
+    <div id="section-messages" class="section">
+
+      <div class="filter-bar">
+        <input type="text" id="messages-search" placeholder="Search sender..." oninput="filterMessages()" style="flex:1; min-width:180px;"/>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <h2>User Messages</h2>
+          <span id="messages-count" style="font-size:13px;color:#888;"></span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Service</th>
+              <th>Message</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody id="messages-body">
+            <tr>
+              <td colspan="6" class="loading">
+                Loading...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pagination" id="messages-pagination"></div>
+      </div>
+
+    </div>
+
     <!-- Settings -->
     <div id="section-settings" class="section">
       <div class="table-wrap" style="max-width:600px;">
@@ -476,6 +520,7 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     overview: { title: 'Overview', sub: 'Sub heading' },
     jobs: { title: 'Jobs', sub: 'Manage job listings' },
     applications: { title: 'Applications', sub: 'Review submitted applications' },
+    messages: { title: 'Messages', sub: 'Review messages and questions from people' },
     settings: { title: 'Change Password', sub: 'Update your account password' },
   };
 
@@ -487,10 +532,11 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
       if (a.getAttribute('onclick')?.includes(page)) a.classList.add('active');
     });
     document.getElementById('page-title').textContent = pages[page].title;
-    document.getElementById('page-sub').textContent   = pages[page].sub;
-    if (page === 'overview')     loadOverview();
-    if (page === 'jobs')         loadJobs();
+    document.getElementById('page-sub').textContent = pages[page].sub;
+    if (page === 'overview') loadOverview();
+    if (page === 'jobs') loadJobs();
     if (page === 'applications') loadApplications();
+    if (page === 'messages') loadMessages();
   }
 
   function fmt(dateStr) {
@@ -514,9 +560,9 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
       const jobs = jobsRes.data.jobs ?? jobsRes.data.data ?? [];
       const apps = appsRes.data.applications ?? appsRes.data.data ?? [];
 
-      document.getElementById('stat-jobs').textContent        = jobs.length;
-      document.getElementById('stat-active').textContent      = jobs.filter(j => j.status?.toLowerCase() === 'active').length;
-      document.getElementById('stat-apps').textContent        = apps.length;
+      document.getElementById('stat-jobs').textContent = jobs.length;
+      document.getElementById('stat-active').textContent = jobs.filter(j => j.status?.toLowerCase() === 'active').length;
+      document.getElementById('stat-apps').textContent = apps.length;
       document.getElementById('stat-shortlisted').textContent = apps.filter(a => a.status?.toLowerCase() === 'shortlisted').length;
 
       const recent = jobs.slice(0, 5);
@@ -617,12 +663,12 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
   function filterApps() { appPage = 1; renderApps(); }
 
   function renderApps() {
-    const q      = document.getElementById('apps-search').value.toLowerCase();
+    const q = document.getElementById('apps-search').value.toLowerCase();
     const status = document.getElementById('apps-status').value.toLowerCase();
 
     const filtered = allApps.filter(a => {
-      const name   = (a.applicant_name ?? a.name ?? '').toLowerCase();
-      const matchQ = !q      || name.includes(q);
+      const name = (a.applicant_name ?? a.name ?? '').toLowerCase();
+      const matchQ = !q || name.includes(q);
       const matchS = !status || (a.status ?? '').toLowerCase() === status;
       return matchQ && matchS;
     });
@@ -659,7 +705,7 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
 
   // Pagination
   function renderPagination(containerId, total, pageSize, current, onPage) {
-    const el    = document.getElementById(containerId);
+    const el = document.getElementById(containerId);
     const pages = Math.ceil(total / pageSize);
     if (pages <= 1) { el.innerHTML = ''; return; }
 
@@ -670,6 +716,97 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     }
     html += `<button class="page-btn" onclick="(${onPage.toString()})(${current + 1})" ${current === pages ? 'disabled' : ''}>›</button>`;
     el.innerHTML = html;
+  }
+
+  // Messages
+  let allMessages = [];
+  let messagePage = 1;
+
+  const MESSAGE_PAGE_SIZE = 10;
+
+  async function loadMessages() {
+    document.getElementById('messages-body').innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
+    try {
+      const res = await axios.get(`${API}/contact/get_all_messages.php`, { withCredentials: true });
+      allMessages = res.data.messages ?? res.data.data ?? [];
+
+      filterMessages();
+    } catch (err) {
+      console.error(err);
+      document.getElementById('messages-body').innerHTML = '<tr><td colspan="6" class="empty-state">Failed to load messages.</td></tr>';
+    }
+  }
+
+  function filterMessages() { messagePage = 1; renderMessages(); }
+
+  function renderMessages() {
+    const q = document.getElementById('messages-search').value.toLowerCase();
+
+    const filtered = allMessages.filter(m => {
+      return (
+        (m.name ?? '')
+          .toLowerCase()
+          .includes(q)
+        ||
+        (m.email ?? '')
+          .toLowerCase()
+          .includes(q)
+        ||
+        (m.message ?? '')
+          .toLowerCase()
+          .includes(q)
+      );
+
+    });
+
+    document.getElementById('messages-count').textContent = `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`;
+
+    const start = (messagePage - 1) * MESSAGE_PAGE_SIZE;
+
+    const paged = filtered.slice(start, start + MESSAGE_PAGE_SIZE);
+
+    document.getElementById('messages-body').innerHTML =
+      paged.length
+        ? paged.map(m => `
+            <tr>
+              <td>${m.first_name ?? '—'} ${m.last_name ?? ''}</td>
+              <td>${m.email ?? '—'}</td>
+              <td>${m.phone ?? ''}</td>
+              <td>${m.service ?? ''}</td>
+
+              <td style="max-width:300px;">
+                ${m.message ?? '—'}
+              </td>
+
+              <td>${fmt(m.created_at)}</td>
+
+              <td>
+                <button
+                  class="btn-danger-sm"
+                  onclick="deleteMessage(${m.id})">
+                  Delete
+                </button>
+              </td>
+            </tr>
+          `).join('')
+        : `
+            <tr>
+              <td colspan="6" class="empty-state">
+                No messages found.
+              </td>
+            </tr>
+          `;
+
+    renderPagination(
+      'messages-pagination',
+      filtered.length,
+      MESSAGE_PAGE_SIZE,
+      messagePage,
+      p => {
+        messagePage = p;
+        renderMessages();
+      }
+    );
   }
 
   // Change password
