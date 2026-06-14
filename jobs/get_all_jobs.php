@@ -26,7 +26,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit();
 }
 
-// Fetch all active jobs with their responsibilities
+// Fetch all jobs with their responsibilities
 $stmt = $pdo->prepare("
     SELECT
         j.id,
@@ -37,6 +37,7 @@ $stmt = $pdo->prepare("
         j.created_at,
         j.updated_at
     FROM jobs j
+    WHERE deleted_at IS NULL
     ORDER BY j.created_at DESC
 ");
 $stmt->execute();
@@ -59,7 +60,7 @@ $placeholders = implode(',', array_fill(0, count($jobIds), '?'));
 $stmtResp = $pdo->prepare("
     SELECT job_id, id AS responsibility_id, responsibility
     FROM job_responsibilities
-    WHERE job_id IN ($placeholders)
+    WHERE job_id IN ($placeholders) AND deleted_at IS NULL
     ORDER BY id ASC
 ");
 $stmtResp->execute($jobIds);

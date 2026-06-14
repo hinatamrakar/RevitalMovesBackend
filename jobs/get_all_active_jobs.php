@@ -27,7 +27,7 @@ $stmt = $pdo->prepare("
         j.created_at,
         j.updated_at
     FROM jobs j
-    WHERE j.status = 'active'
+    WHERE j.status = 'active' AND deleted_at IS NULL
     ORDER BY j.created_at DESC
 ");
 $stmt->execute();
@@ -50,7 +50,7 @@ $placeholders = implode(',', array_fill(0, count($jobIds), '?'));
 $stmtResp = $pdo->prepare("
     SELECT job_id, id AS responsibility_id, responsibility
     FROM job_responsibilities
-    WHERE job_id IN ($placeholders)
+    WHERE job_id IN ($placeholders) AND deleted_at IS NULL
     ORDER BY id ASC
 ");
 $stmtResp->execute($jobIds);

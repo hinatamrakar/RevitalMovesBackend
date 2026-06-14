@@ -39,7 +39,7 @@ $stmt = $pdo->prepare("
         created_at,
         updated_at
     FROM jobs
-    WHERE id = ?
+    WHERE id = ? AND deleted_at IS NULL
     LIMIT 1
 ");
 $stmt->execute([$id]);
@@ -58,7 +58,7 @@ if (!$job) {
 $stmtResp = $pdo->prepare("
     SELECT id AS responsibility_id, responsibility
     FROM job_responsibilities
-    WHERE job_id = ?
+    WHERE job_id = ? AND deleted_at IS NULL
     ORDER BY id ASC
 ");
 $stmtResp->execute([$id]);

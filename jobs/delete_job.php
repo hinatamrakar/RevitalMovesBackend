@@ -50,7 +50,11 @@ if ($id <= 0) {
 }
 
 // Check job exists
-$stmtCheck = $pdo->prepare("SELECT id FROM jobs WHERE id = ? LIMIT 1");
+$stmtCheck = $pdo->prepare("
+    SELECT id 
+    FROM jobs 
+    WHERE id = ? AND deleted_at IS NULL
+    LIMIT 1");
 $stmtCheck->execute([$id]);
 
 if (!$stmtCheck->fetch()) {
@@ -62,15 +66,21 @@ if (!$stmtCheck->fetch()) {
     exit();
 }
 
-// Delete job and its responsibilities
+// Soft delete job and its responsibilities
 try {
     $pdo->beginTransaction();
 
     // Delete responsibilities first
-    $stmtResp = $pdo->prepare("DELETE FROM job_responsibilities WHERE job_id = ?");
+    $stmtResp = $pdo->prepare("
+        UPDATE job_responsibilities
+        SET deleted_at = NOW()
+        WHERE job_id = ?");
     $stmtResp->execute([$id]);
 
-    $stmtJob = $pdo->prepare("DELETE FROM jobs WHERE id = ?");
+    $stmtJob = $pdo->prepare("
+        UPDATE jobs
+        SET deleted_at = NOW()
+        WHERE id = ?");
     $stmtJob->execute([$id]);
 
     $pdo->commit();

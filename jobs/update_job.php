@@ -6,8 +6,6 @@ require_once '../includes/auth.php';
 
 startSecureSession();
 
-// may need to update the responsibility update portion
-
 // Only accept POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -79,7 +77,11 @@ if ($errors) {
 }
 
 // Check job exists
-$stmtCheck = $pdo->prepare("SELECT id FROM jobs WHERE id = ? LIMIT 1");
+$stmtCheck = $pdo->prepare("
+    SELECT id 
+    FROM jobs 
+    WHERE id = ? AND deleted_at IS NULL
+    LIMIT 1");
 $stmtCheck->execute([$id]);
 
 if (!$stmtCheck->fetch()) {
@@ -106,7 +108,7 @@ try {
     $stmtExisting = $pdo->prepare("
         SELECT responsibility
         FROM job_responsibilities
-        WHERE job_id = ?
+        WHERE job_id = ? AND deleted_at IS NULL
         ORDER BY id
     ");
     $stmtExisting->execute([$id]);
@@ -119,7 +121,8 @@ try {
     if ($existingResponsibilities !== $newResponsibilities) {
         // Delete old 
         $stmtDel = $pdo->prepare("
-            DELETE FROM job_responsibilities 
+            UPDATE job_responsibilities 
+            SET deleted_at = NOW()
             WHERE job_id = ?
         ");
         $stmtDel->execute([$id]);

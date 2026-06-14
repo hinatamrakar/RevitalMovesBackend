@@ -60,7 +60,11 @@ if ($errors) {
 }
 
 // Check job exists
-$stmtCheck = $pdo->prepare("SELECT id, status FROM jobs WHERE id = ? LIMIT 1");
+$stmtCheck = $pdo->prepare("
+    SELECT id, status 
+    FROM jobs 
+    WHERE id = ? AND deleted_at IS NULL
+    LIMIT 1");
 $stmtCheck->execute([$id]);
 $job = $stmtCheck->fetch();
 
@@ -84,7 +88,11 @@ if ($job['status'] === $status) {
 }
 
 // Update status
-$stmtUpdate = $pdo->prepare("UPDATE jobs SET status = ? WHERE id = ?");
+$stmtUpdate = $pdo->prepare("
+    UPDATE jobs 
+    SET status = ? 
+    WHERE id = ?
+");
 $stmtUpdate->execute([$status, $id]);
 
 $label = $status === 'active' ? 'activated' : 'deactivated';
