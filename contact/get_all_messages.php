@@ -38,6 +38,7 @@ $stmt = $pdo->prepare("
         message,
         created_at
     FROM contact_messages
+    WHERE deleted_at IS NULL
     ORDER BY created_at DESC
 ");
 $stmt->execute();
