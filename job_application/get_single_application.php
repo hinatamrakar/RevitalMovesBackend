@@ -43,7 +43,7 @@ $stmt = $pdo->prepare("
     SELECT
         ja.id,
         ja.job_id,
-        j.title    AS job_title,
+        j.title AS job_title,
         j.job_type,
         ja.name,
         ja.email,
@@ -55,7 +55,7 @@ $stmt = $pdo->prepare("
         ja.updated_at
     FROM job_applications ja
     LEFT JOIN jobs j ON j.id = ja.job_id
-    WHERE ja.id = ?
+    WHERE ja.id = ? AND ja.deleted_at IS NULL
     LIMIT 1
 ");
 $stmt->execute([$id]);

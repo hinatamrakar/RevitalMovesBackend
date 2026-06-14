@@ -53,7 +53,7 @@ if ($id <= 0) {
 $stmtCheck = $pdo->prepare("
     SELECT id, resume_file, cover_letter
     FROM job_applications
-    WHERE id = ?
+    WHERE id = ? AND deleted_at IS NULL
     LIMIT 1
 ");
 $stmtCheck->execute([$id]);
@@ -69,20 +69,24 @@ if (!$application) {
 }
 
 // Delete the DB record
-$stmtDel = $pdo->prepare("DELETE FROM job_applications WHERE id = ?");
+$stmtDel = $pdo->prepare("
+    UPDATE job_applications
+    SET deleted_at = NOW() 
+    WHERE id = ?
+");
 $stmtDel->execute([$id]);
 
-// Delete resume file from disk
-$resumePath = __DIR__ . '/../uploads/resumes/' . $application['resume_file'];
-if (!empty($application['resume_file']) && file_exists($resumePath)) {
-    unlink($resumePath);
-}
+// // Delete resume file from disk
+// $resumePath = __DIR__ . '/../uploads/resumes/' . $application['resume_file'];
+// if (!empty($application['resume_file']) && file_exists($resumePath)) {
+//     unlink($resumePath);
+// }
 
-// Delete cover letter if it exists from disk
-$coverLetterPath = __DIR__ . '/../uploads/cover_letters/' . $application['cover_letter'];
-if (!empty($application['cover_letter']) && file_exists($coverLetterPath)) {
-    unlink($coverLetterPath);
-}
+// // Delete cover letter if it exists from disk
+// $coverLetterPath = __DIR__ . '/../uploads/cover_letters/' . $application['cover_letter'];
+// if (!empty($application['cover_letter']) && file_exists($coverLetterPath)) {
+//     unlink($coverLetterPath);
+// }
 
 http_response_code(200);
 echo json_encode([

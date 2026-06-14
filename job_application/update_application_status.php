@@ -61,7 +61,7 @@ if ($errors) {
 $stmtCheck = $pdo->prepare("
     SELECT id, status 
     FROM job_applications 
-    WHERE id = ? 
+    WHERE id = ? AND deleted_at IS NULL
     LIMIT 1
 ");
 $stmtCheck->execute([$id]);

@@ -42,7 +42,7 @@ if ($jobId <= 0) {
 $stmtJob = $pdo->prepare("
     SELECT id, title
     FROM jobs
-    WHERE id = ?
+    WHERE id = ? AND deleted_at IS NULL
     LIMIT 1
 ");
 $stmtJob->execute([$jobId]);
@@ -65,7 +65,7 @@ $offset = ($page - 1) * $limit;
 
 $allowedStatuses = ['new', 'reviewed', 'shortlisted', 'rejected', 'hired'];
 
-$where  = ['ja.job_id = :job_id'];
+$where = ['ja.job_id = :job_id', 'ja.deleted_at IS NULL'];
 $params = [':job_id' => (int)$jobId];
 
 if (!empty($status) && in_array($status, $allowedStatuses)) {
@@ -88,7 +88,7 @@ $total = (int)$stmtCount->fetchColumn();
 $stmtSummary = $pdo->prepare("
     SELECT status, COUNT(*) AS count
     FROM job_applications
-    WHERE job_id = ?
+    WHERE job_id = ? AND deleted_at IS NULL
     GROUP BY status
 ");
 $stmtSummary->execute([$jobId]);

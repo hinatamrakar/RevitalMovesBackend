@@ -6,7 +6,7 @@ require_once "../includes/auth.php";
 
 startSecureSession();
 
-// Only accept POST
+// Only accept GET
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
     echo json_encode([
@@ -42,7 +42,7 @@ if ($id <= 0) {
 $stmt = $pdo->prepare("
     SELECT resume_file, name
     FROM job_applications
-    WHERE id = ?
+    WHERE id = ? AND deleted_at IS NULL
     LIMIT 1
 ");
 $stmt->execute([$id]);

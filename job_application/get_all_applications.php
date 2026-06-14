@@ -4,8 +4,6 @@ require_once '../db.php';
 require_once '../server.php';
 require_once '../includes/auth.php';
 
-// resume and cover letter files fetch??
-
 startSecureSession();
 
 // Only accept GET
@@ -37,16 +35,16 @@ $offset = ($page - 1) * $limit;
 
 $allowedStatuses = ['new', 'reviewed', 'shortlisted', 'rejected', 'hired'];
 
-$where = [];
+$where = ['ja.deleted_at IS NULL'];
 $params = [];
 
 if (!empty($status) && in_array($status, $allowedStatuses)) {
-    $where[]  = 'ja.status = :status';
+    $where[] = 'ja.status = :status';
     $params[':status'] = $status;
 }
 
 if (!empty($search)) {
-    $where[]  = '(ja.name LIKE :search OR ja.email LIKE :search';
+    $where[] = '(ja.name LIKE :search OR ja.email LIKE :search)';
     $params[':search'] = '%' . $search . '%';
 }
 
@@ -68,7 +66,7 @@ $stmt = $pdo->prepare("
     SELECT
         ja.id,
         ja.job_id,
-        j.title        AS job_title,
+        j.title AS job_title,
         j.job_type,
         ja.name,
         ja.email,

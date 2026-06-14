@@ -106,7 +106,11 @@ if ($errors) {
 }
 
 // Verify job exists
-$jobStmt = $pdo->prepare("SELECT id FROM jobs WHERE id = ? LIMIT 1");
+$jobStmt = $pdo->prepare("
+    SELECT id 
+    FROM jobs 
+    WHERE id = ? AND deleted_at IS NULL AND status = 'active'
+    LIMIT 1");
 $jobStmt->execute([$jobId]);
 if (!$jobStmt->fetch()) {
     http_response_code(404);
@@ -120,7 +124,7 @@ if (!$jobStmt->fetch()) {
 // Prevent duplicate applications (same email + job)
 $dupStmt = $pdo->prepare("
     SELECT id FROM job_applications
-    WHERE job_id = ? AND email = ?
+    WHERE job_id = ? AND email = ? AND deleted_at IS NULL
     LIMIT 1
 ");
 $dupStmt->execute([$jobId, $email]);
@@ -190,7 +194,6 @@ if ($coverLetter !== null) {
         ]);
         exit();
     }
-
 }
 
 // Insert application
